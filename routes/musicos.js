@@ -88,8 +88,30 @@ module.exports = async function (fastify, opts) {
             return
         }
     })
-    fastify.get('/musicos/:id', function (request, response) {
-        response.send()
+    fastify.get('/musicos/:id', async function (req, reply) {
+        let musico_id
+        try {
+            musico_id = parseInt(req.params.id)
+        } catch {
+            reply.code(400)
+            return
+        }
+        const connection = await fastify.mysql.getConnection()
+        const [musico] = await connection.query(`
+            SELECT 
+                p.id, 
+                p.Nome, 
+                p.Status, 
+                p.id_instrumento, 
+                p.id_setor, 
+                p.telefone,
+                i.nome AS instrumento_nome,
+                s.nome AS setor_nome
+            FROM pessoa p
+            INNER JOIN instrumento i ON p.id_instrumento = i.id
+            INNER JOIN setor s ON p.id_setor = s.id
+            WHERE p.id = ?`, musico_id)
+        return musico
     })
     fastify.post('/musicos', function (request, response) {
         response.send()
