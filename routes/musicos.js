@@ -65,8 +65,8 @@ module.exports = async function (fastify, opts) {
         
         const connection = await fastify.mysql.getConnection()
 
-        if (include_alunos && !filtro && ! param) {
-            const [musicos] = await connection.query(select_all_musicos)
+        if (!filtro && ! param) {
+            const [musicos] = await connection.query(select_all_musicos + (!include_alunos ? 'and' + no_alunos : ''))
             connection.release()
             return musicos
         }
