@@ -71,8 +71,14 @@ module.exports = async function (fastify, opts) {
             return musicos
         }
         else if (filtro && param) {
-            const built_query = (filtro === 'setor' ? count_musicos_setor : count_musicos) + 'where' + filtra[filtro] + (!include_alunos ? 'and' + no_alunos : '')
-            console.log({built_query})
+            const built_query = 
+                (filtro === 'setor' 
+                    ? count_musicos_setor 
+                    : count_musicos
+                ) + 
+                'where' + 
+                filtra[filtro] + 
+                (!include_alunos ? 'and' + no_alunos : '')
             const [musicos] = await connection.query(built_query, parseInt(param))
             connection.release()
             return musicos
