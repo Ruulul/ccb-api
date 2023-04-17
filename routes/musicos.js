@@ -99,8 +99,12 @@ module.exports = async function (fastify, opts) {
                 select_musicos
                 + 'and' + filtra[filtro] +
                 (!include_alunos ? 'and' + no_alunos : '')
-            const [count] = await connection.query(built_count_query, parseInt(param))
-            const [musicos] = await connection.query(built_musicos_query, parseInt(param))
+            const [[count], [musicos]] = await Promise.all(
+                [
+                    connection.query(built_count_query, parseInt(param)),
+                    connection.query(built_musicos_query, parseInt(param)),
+                ]
+            )
             connection.release()
             return { count, musicos }
         }
