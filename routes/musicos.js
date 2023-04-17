@@ -18,6 +18,21 @@ and setor.id_cidade = cidade.id
 and instrumento.id_familia = familia.id 
 and cidade.id_estado = estado.id
 `
+const select_musicos = `
+select 
+    pessoa.id as id, 
+    pessoa.nome as nome_pessoa, 
+    instrumento.nome as nome_instrumento, 
+    setor.nome as setor, 
+    pessoa.telefone as telefone, 
+    pessoa.email as email, 
+    pessoa.status as status
+from pessoa, instrumento, setor,cidade 
+where 
+    pessoa.id_setor = setor.id 
+and setor.id_cidade = cidade.id
+and pessoa.id_instrumento = instrumento.id
+`
 const count_musicos = `
 SELECT
   SUM(CASE WHEN familia.id = 1 THEN 1 ELSE 0 END) as cordas,
@@ -46,7 +61,7 @@ const no_alunos = ' pessoa.Status != 0 '
 const filtra = Object.freeze(
     {
         cidade: ' cidade.id = ? ',
-        setor: ' ',
+        setor: ' setor.id = ? ',
         regiao: ' regiao.id = ? ',
     }
 )
@@ -71,17 +86,23 @@ module.exports = async function (fastify, opts) {
             return musicos
         }
         else if (filtro && param) {
-            const built_query = 
-                (filtro === 'setor' 
+            const is_setor = filtro === 'setor'
+            const built_count_query = 
+                (is_setor
                     ? count_musicos_setor 
                     : count_musicos
                 ) + 
                 'where' + 
-                filtra[filtro] + 
+                (is_setor ? ' true ' : filtra[filtro]) + 
                 (!include_alunos ? 'and' + no_alunos : '')
-            const [musicos] = await connection.query(built_query, parseInt(param))
+            const built_musicos_query =
+                select_musicos
+                + 'and' + filtra[filtro] +
+                (!include_alunos ? 'and' + no_alunos : '')
+            const [count] = await connection.query(built_count_query, parseInt(param))
+            const [musicos] = await connection.query(built_musicos_query, parseInt(param))
             connection.release()
-            return musicos
+            return { count, musicos }
         }
         else {
             reply.code(400)
