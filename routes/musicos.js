@@ -71,7 +71,7 @@ module.exports = async function (fastify, opts) {
         const { query } = request
         const include_alunos = 'alunos' in query
         const filtro = query.filtro
-        const param = query.param
+        const param = parseInt(query.param)
         
         if (filtro && !filtros_validos.includes(filtro)) {
             reply.code(400)
@@ -85,7 +85,7 @@ module.exports = async function (fastify, opts) {
             connection.release()
             return musicos
         }
-        else if (filtro && param) {
+        else if (filtro && param && !isNaN(param)) {
             const is_setor = filtro === 'setor'
             const built_count_query = 
                 (is_setor
@@ -101,8 +101,8 @@ module.exports = async function (fastify, opts) {
                 (!include_alunos ? 'and' + no_alunos : '')
             const [[count], [musicos]] = await Promise.all(
                 [
-                    connection.query(built_count_query, parseInt(param)),
-                    connection.query(built_musicos_query, parseInt(param)),
+                    connection.query(built_count_query, param),
+                    connection.query(built_musicos_query, param),
                 ]
             )
             connection.release()
