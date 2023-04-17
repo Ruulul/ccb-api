@@ -65,44 +65,51 @@ const filtra = Object.freeze(
         regiao: ' regiao.id = ? ',
     }
 )
-const filtros_validos = Object.freeze(['cidade', 'setor', 'regiao'])
 module.exports = async function (fastify, opts) {
-    fastify.get('/', async function (request, reply) {
+    fastify.get('/', {
+        schema: {
+            query: {
+                type: 'object',
+                properties: {
+                    filtro: {
+                        type: 'string',
+                        enum: ['cidade', 'setor', 'regiao'],
+                    },
+                    param: { type: 'number' }
+                }
+            }
+        }
+    }, async function (request, reply) {
         const { query } = request
         const include_alunos = 'alunos' in query
         const filtro = query.filtro
-        const param = parseInt(query.param)
-        
-        if (filtro && !filtros_validos.includes(filtro)) {
-            reply.code(400)
-            return
-        }
-        
+        const param = query.param
+
         const connection = await fastify.mysql.getConnection()
 
-        if (!filtro && ! param) {
+        if (!filtro && !param) {
             const [musicos] = await connection.query(select_all_musicos + (!include_alunos ? 'and' + no_alunos : ''))
             connection.release()
             return musicos
         }
-        else if (filtro && param && !isNaN(param)) {
+        else if (filtro && param) {
             const is_setor = filtro === 'setor'
-            const built_count_query = 
+            const built_count_query =
                 (is_setor
-                    ? count_musicos_setor 
-                        + (!include_alunos ? 'where' + no_alunos : '')
-                    : count_musicos 
-                        + 'where' + filtra[filtro]
-                        + (!include_alunos ? 'and' + no_alunos : '')
+                    ? count_musicos_setor
+                    + (!include_alunos ? 'where' + no_alunos : '')
+                    : count_musicos
+                    + 'where' + filtra[filtro]
+                    + (!include_alunos ? 'and' + no_alunos : '')
                 )
             const built_musicos_query =
                 select_musicos
-                + 'and' + filtra[filtro] 
+                + 'and' + filtra[filtro]
                 + (!include_alunos ? 'and' + no_alunos : '')
             const [[count], [musicos]] = await Promise.all(
                 [
-                    connection.query(built_count_query, param),
-                    connection.query(built_musicos_query, param),
+                    connection.query(built_count_query, [param]),
+                    connection.query(built_musicos_query, [param]),
                 ]
             )
             connection.release()
@@ -110,7 +117,7 @@ module.exports = async function (fastify, opts) {
         }
         else {
             reply.code(400)
-            return
+            return reply.send()
         }
     })
     fastify.get('/:id', async function (req, reply) {
@@ -135,11 +142,79 @@ module.exports = async function (fastify, opts) {
             FROM pessoa p
             INNER JOIN instrumento i ON p.id_instrumento = i.id
             INNER JOIN setor s ON p.id_setor = s.id
-            WHERE p.id = ?`, musico_id)
+            WHERE p.id = ?;`, [musico_id])
+        connection.release()
         return musico
     })
-    fastify.post('/', function (request, response) {
-        response.send()
+    fastify.post('/', {
+        schema: {
+            body: {
+                type: 'object',
+                required: ['nome', 'email', 'telefone', 'status', 'instrumento', 'setor'],
+                properties: {
+                    nome: { type: 'string' },
+                    email: { type: 'string' },
+                    telefone: { type: 'string' },
+                    status: { type: 'number' },
+                    instrumento: { type: 'number' },
+                    setor: { type: 'number' },
+                }
+            }
+        }
+    }, async function (req, reply) {
+        const { body: { nome, email, telefone, status, instrumento, setor } } = req
+        const connection = await fastify.mysql.getConnection()
+        await connection.query(
+            'insert into pessoa(nome, status, id_instrumento, id_setor, email, telefone) values (?, ?, ?, ?, ?, ?);',
+            [nome, status, instrumento, setor, email, telefone],
+        )
+        connection.release()
+        return [{ Message: "Músico registrado com sucesso" }]
+    })
+    fastify.put('/', {
+        schema: {
+            body: {
+                type: 'object',
+                required: ['nome', 'email', 'telefone', 'status', 'instrumento', 'setor', 'id'],
+                properties: {
+                    nome: { type: 'string' },
+                    email: { type: 'string' },
+                    telefone: { type: 'string' },
+                    status: { type: 'number' },
+                    instrumento: { type: 'number' },
+                    setor: { type: 'number' },
+                    id: { type: 'number' },
+                }
+            }
+        }
+    }, async function (req, reply) {
+        const { body: { nome, status, instrumento, setor, email, telefone, id } } = req
+        const connection = fastify.mysql.getConnection()
+        await connection.query(
+            'update pessoa set nome=?, status=?, id_instrumento=?, id_setor=?, email=?, telefone=? where id=?;',
+            [nome, status, instrumento, setor, email, telefone, id]
+        )
+        connection.release()
+        return [{ Message: "Músico atualizado com sucesso" }]
+    })
+    fastify.delete('/', {
+        schema: {
+            body: {
+                type: 'object',
+                required: ['id'],
+                properties: {
+                    id: {
+                        type: 'number'
+                    }
+                }
+            }
+        }
+    }, async function (req, reply) {
+        const { body: { id } } = req
+        const connection = fastify.mysql.getConnection()
+        await connection.query('delete from pessoa where id=?;', [id])
+        connection.release()
+        return [{ Message: 'Músico deletado com sucesso' }]
     })
 }
 module.exports.autoPrefix = '/musicos'
