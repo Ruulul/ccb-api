@@ -90,15 +90,15 @@ module.exports = async function (fastify, opts) {
             const built_count_query = 
                 (is_setor
                     ? count_musicos_setor 
-                    : count_musicos
-                ) + 
-                'where' + 
-                (is_setor ? ' true ' : filtra[filtro]) + 
-                (!include_alunos ? 'and' + no_alunos : '')
+                        + (!include_alunos ? 'where' + no_alunos : '')
+                    : count_musicos 
+                        + 'where' + filtra[filtro]
+                        + (!include_alunos ? 'and' + no_alunos : '')
+                )
             const built_musicos_query =
                 select_musicos
-                + 'and' + filtra[filtro] +
-                (!include_alunos ? 'and' + no_alunos : '')
+                + 'and' + filtra[filtro] 
+                + (!include_alunos ? 'and' + no_alunos : '')
             const [[count], [musicos]] = await Promise.all(
                 [
                     connection.query(built_count_query, param),
