@@ -52,7 +52,7 @@ const filtra = Object.freeze(
 )
 const filtros_validos = Object.freeze(['cidade', 'setor', 'regiao'])
 module.exports = async function (fastify, opts) {
-    fastify.get('/musicos', async function (request, reply) {
+    fastify.get('/', async function (request, reply) {
         const { query } = request
         const include_alunos = 'alunos' in query
         const filtro = query.filtro
@@ -88,7 +88,7 @@ module.exports = async function (fastify, opts) {
             return
         }
     })
-    fastify.get('/musicos/:id', async function (req, reply) {
+    fastify.get('/:id', async function (req, reply) {
         let musico_id
         try {
             musico_id = parseInt(req.params.id)
@@ -113,7 +113,8 @@ module.exports = async function (fastify, opts) {
             WHERE p.id = ?`, musico_id)
         return musico
     })
-    fastify.post('/musicos', function (request, response) {
+    fastify.post('/', function (request, response) {
         response.send()
     })
 }
+module.exports.autoPrefix = '/musicos'
